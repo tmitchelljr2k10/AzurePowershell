@@ -80,7 +80,7 @@ Write-Host "   "
 # $VMName: provide a name for the VM (usually the same as the Computer Name)
 # $sku: What OS image do you want to use?  Run Get-AzureRmVMImageSKU for a list of options
 
-$rgn = "MyResourceGroupNew"
+$rgn = "MyResourceGroup"
 $location="WestUS"
 $storagename=Read-Host -Prompt 'Input a unique storage account name (ie. labstorageacct097654) NO CAPITAL LETTERS'
 $storagesku="Standard_LRS"
@@ -141,7 +141,11 @@ $network2 = $myVnet.Subnets|?{$_.Name -eq $subnet2name}
 $myNic2 = New-AzureRmNetworkInterface -ResourceGroupName $rgn `
     -Location $location -Name "NIC2" -SubnetId $network2.Id
 
-
+Write-Host " "
+Write-Host " "
+Write-Host "   NOTE: After you supply account credentials for the VM, the script will appear unresponsive." 
+Write-Host "         It is not hung. It's simply provisioning the VM. The script will complete in approximately 5 minutes."
+Write-Host " "
 
 # CREATE VIRTUAL MACHINE
 
