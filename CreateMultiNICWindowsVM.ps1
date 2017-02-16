@@ -88,25 +88,25 @@ Write-Host "   "
 
 # NOTE: If using values that already exist in your Azure environment, this script will prompt you to confirm that you wish to UPDATE those resources.
 
-$rgn = "Exchange2016HALab"
-$location="EastUS"
+$rgn = "MyResourceGroup"
+$location="WestUS"
 $UseExistingStorageAcct=Read-Host -Prompt '   Will you be using an existing storage account? (Y/N)'
 If ($UseExistingStorageAcct -eq 'Y') {
 $storagename=Read-Host -Prompt '   Enter the name of an existing storage account'}
 If ($UseExistingStorageAcct -eq 'N') {
 $storagename=Read-Host -Prompt '   Enter the name of an new storage account (no capital letters / no spaces)'}
 $storagesku="Standard_LRS"
-$subnet1name="MAPI"
-$subnet1addressprefix="10.0.0.0/24"
-$subnet2name="REPL"
-$subnet2addressprefix="10.0.1.0/24"
+$subnet1name="Subnet1"
+$subnet1addressprefix="192.168.1.0/24"
+$subnet2name="Subnet2"
+$subnet2addressprefix="192.168.2.0/24"
 $vNetName="myVnet"
-$vNetPrefix="10.0.0.0/16"
-$NIC1="RWEX11NIC1"
-$NIC2="RWEX11NIC2"
+$vNetPrefix="192.168.0.0/16"
+$NIC1="NIC1"
+$NIC2="NIC2"
 $VMSize="Standard_A2_v2"
-$computername="RWEX11"
-$VMName="RWEX11"
+$computername="SERVER01"
+$VMName="SERVER01"
 $sku="2016-Datacenter"
 
 
