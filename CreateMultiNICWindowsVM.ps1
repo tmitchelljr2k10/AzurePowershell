@@ -94,7 +94,7 @@ $UseExistingStorageAcct=Read-Host -Prompt '   Will you be using an existing stor
 If ($UseExistingStorageAcct -eq 'Y') {
 $storagename=Read-Host -Prompt '   Enter the name of an existing storage account'}
 If ($UseExistingStorageAcct -eq 'N') {
-$storagename=Read-Host -Prompt '   Enter the name of an new storage account (no capital letters / no spaces)'}
+$storagename=Read-Host -Prompt '   Enter the name of a new storage account (no capital letters / no spaces)'}
 $storagesku="Standard_LRS"
 $subnet1name="Subnet1"
 $subnet1addressprefix="192.168.1.0/24"
@@ -102,8 +102,8 @@ $subnet2name="Subnet2"
 $subnet2addressprefix="192.168.2.0/24"
 $vNetName="myVnet"
 $vNetPrefix="192.168.0.0/16"
-$NIC1="NIC1"
-$NIC2="NIC2"
+$NIC1="SERVER01NIC1"
+$NIC2="SERVER01NIC2"
 $VMSize="Standard_A2_v2"
 $computername="SERVER01"
 $VMName="SERVER01"
@@ -114,10 +114,17 @@ $sku="2016-Datacenter"
 
 # Create Resource Group:
 
+Write-Host "   "
+Write-Host "   Configuring Resource Group..." 
+
 New-AzureRmResourceGroup -Name $rgn -Location $location
 
 
 # Create Storage Account to Hold VMs:
+
+Write-Host "   "
+Write-Host "   Configuring Storage Account..."
+Write-Host "   "
 
 If ($UseExistingStorageAcct -eq 'N') {
 
@@ -132,6 +139,9 @@ $storageAcctemp = Get-AzureRmStorageAccount -ResourceGroupName $rgn -AccountName
 
 # Create Subnets:
 
+Write-Host "   Configuring Subnets..."
+Write-Host "   "
+
 $subnet1 = New-AzureRmVirtualNetworkSubnetConfig -Name $subnet1name `
     -AddressPrefix $subnet1addressprefix
 $subnet2 = New-AzureRmVirtualNetworkSubnetConfig -Name $subnet2name `
@@ -140,40 +150,57 @@ $subnet2 = New-AzureRmVirtualNetworkSubnetConfig -Name $subnet2name `
 
 # Create Virtual Network:
 
+Write-Host "   Configuring Virtual Network..."
+Write-Host "   "
+
 $myVnet = New-AzureRmVirtualNetwork -ResourceGroupName $rgn `
     -Location $location -Name $vNetName -AddressPrefix $vNetPrefix `
-    -Subnet $subnet1,$subnet2
+    -Subnet $subnet1,$subnet2 -WarningAction silentlyContinue
 
 
 # Create Public IP Resource (so you can RDP to your VM):
 
+Write-Host "   "
+Write-Host "   Configuring Public IP..."
+Write-Host "   "
+
 $pip = New-AzureRmPublicIpAddress -Name $computername -ResourceGroupName $rgn `
-     -AllocationMethod Dynamic -Location $location 
+     -AllocationMethod Dynamic -Location $location -WarningAction silentlyContinue
 
 
 # Create Multiple NICs:
 
+Write-Host "   "
+Write-Host "   Configuring NICs..."
+Write-Host "   "
+
+
 $network1 = $myVnet.Subnets|?{$_.Name -eq $subnet1name}
 $myNic1 = New-AzureRmNetworkInterface -ResourceGroupName $rgn `
-    -Location $location -Name $NIC1 -SubnetId $network1.Id -PublicIpAddressId $pip.Id
+    -Location $location -Name $NIC1 -SubnetId $network1.Id -PublicIpAddressId $pip.Id -WarningAction silentlyContinue
 
 $network2 = $myVnet.Subnets|?{$_.Name -eq $subnet2name}
 $myNic2 = New-AzureRmNetworkInterface -ResourceGroupName $rgn `
-    -Location $location -Name $NIC2 -SubnetId $network2.Id
+    -Location $location -Name $NIC2 -SubnetId $network2.Id -WarningAction silentlyContinue
 
-Write-Host " "
-Write-Host " "
 
 # CREATE VIRTUAL MACHINE
 
 # Set VM Credentials (used to login to VM):
 
+Write-Host "   "
+Write-Host "   Creating Virtual Machine..."
+
 $cred = Get-Credential
 
 Write-Host " "
-Write-Host "   Please wait while your VM is provisioned. This may take 10-15 minutes. Do not cancel the script."
+Write-Host "   Please wait while your VM is provisioned. This process may take 10-15 minutes. Do not cancel the script."
+Write-Host " "
+
 
 # Define Your VM Size:
+
+Write-Host "   Configuring Virtual Machine..."
 
 $vmConfig = New-AzureRmVMConfig -VMName $VMName -VMSize $VMSize
 
@@ -188,24 +215,29 @@ $vmConfig = Set-AzureRmVMSourceImage -VM $vmConfig -PublisherName "MicrosoftWind
 
 # Attach the NICs:
 
+Write-Host "   "
+Write-Host "   Attaching NICs to Virtual Machine..."
+
 $vmConfig = Add-AzureRmVMNetworkInterface -VM $vmConfig -Id $myNic1.Id -Primary
 $vmConfig = Add-AzureRmVMNetworkInterface -VM $vmConfig -Id $myNic2.Id
 
 
 # Configure Storage for the VM:
 
-$storageAcc = $storageAcctemp
+Write-Host "   "
+Write-Host "   Configuring Storage for Virtual Machine..."
 
+$storageAcc = $storageAcctemp
 $diskName = $VMName+'_osDisk'
-# $blobPath = "vhds/WindowsVMosDisk.vhd"
 $blobPath = 'vhds/'+$diskname+'.vhd'
 $osDiskUri = $storageAcc.PrimaryEndpoints.Blob.ToString() + $blobPath
-# $diskName = "windowsvmosdisk"
-
 $vmConfig = Set-AzureRmVMOSDisk -VM $vmConfig -Name $diskName -VhdUri $osDiskUri `
     -CreateOption "fromImage"
 
 
 # Create the Actual VM:
+
+Write-Host "   "
+Write-Host "   Finalizing Deployment..."
 
 New-AzureRmVM -VM $vmConfig -ResourceGroupName $rgn -Location $location
