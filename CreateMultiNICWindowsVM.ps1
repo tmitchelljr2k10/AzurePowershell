@@ -21,7 +21,6 @@ Write-Host "   "
 Write-Host "   This script should be modified before you can use it!"
 Write-Host "   Variables under SET SCRIPT VARIABLES within the script must be replaced with your own values. Do not forget the quotation marks."
 Write-Host "   "
-Write-Host "   This script creates a new Resource Group and Storage Account for each VM it provisions."
 Write-Host "   "
 Write-Host "   storagename must be unique and cannot include any spaces or capital letters"
 Write-Host "   vNetPrefix value MUST encompass both the subnet1addressprefix and subnet2addressprefix"
@@ -47,12 +46,17 @@ Write-Host "         Second Subnet: Subnet2"
 Write-Host "         Subnet2 Subnetting: 192.168.2.0/24"
 Write-Host "         Virtual Network: myVnet"
 Write-Host "         Virtual Network Subnet: 192.168.0.0/16"
+Write-Host "         NIC1 Name: NIC1"
+Write-Host "         NIC2 Name: NIC2"
 Write-Host "         VM Size: Standard_A2_v2"
 Write-Host "         Computer Name: SERVER01"
 Write-Host "         VM Name: SERVER01"
 Write-Host "         Installed OS: Windows Server 2016 Datacenter"
 Write-Host "   "
 Write-Host "   If you have not modified the script yet and do not wish to use the default settings above, please hit N below and edit the script with your own values before running it again."
+Write-Host "   "
+Write-Host "   NOTE: If using values that already exist in your Azure environment, this script will prompt you to confirm that you wish to UPDATE those resources."
+Write-Host "   ANOTHER NOTE: You can ignore the warnings indicating that the output object type of this cmdlet will be modified in a future release."
 Write-Host "   "
 write-host -nonewline "   Continue running script? (Y/N) "
 $response = read-host
@@ -75,24 +79,34 @@ Write-Host "   "
 # $subnet2addressprefix: Enter an address prefix for your second subnet
 # $vNetName: Enter a name for your Virtual Network
 # $vNetPrefix: Supply an address prefix for your Virtual Network (must encompass both your first and second subnet prefixes)
+# $NIC1: Supply a name for the first NIC
+# $NIC2: Supply a name for the second NIC
 # $VMSize: What size VM do you want to provision?
 # $computername: Provide a Computer Name for the VM
 # $VMName: provide a name for the VM (usually the same as the Computer Name)
 # $sku: What OS image do you want to use?  Run Get-AzureRmVMImageSKU for a list of options
 
-$rgn = "MyResourceGroup"
-$location="WestUS"
-$storagename=Read-Host -Prompt 'Input a unique storage account name (ie. labstorageacct097654) NO CAPITAL LETTERS'
+# NOTE: If using values that already exist in your Azure environment, this script will prompt you to confirm that you wish to UPDATE those resources.
+
+$rgn = "Exchange2016HALab"
+$location="EastUS"
+$UseExistingStorageAcct=Read-Host -Prompt '   Will you be using an existing storage account? (Y/N)'
+If ($UseExistingStorageAcct -eq 'Y') {
+$storagename=Read-Host -Prompt '   Enter the name of an existing storage account'}
+If ($UseExistingStorageAcct -eq 'N') {
+$storagename=Read-Host -Prompt '   Enter the name of an new storage account (no capital letters / no spaces)'}
 $storagesku="Standard_LRS"
-$subnet1name="Subnet1"
-$subnet1addressprefix="192.168.1.0/24"
-$subnet2name="Subnet2"
-$subnet2addressprefix="192.168.2.0/24"
+$subnet1name="MAPI"
+$subnet1addressprefix="10.0.0.0/24"
+$subnet2name="REPL"
+$subnet2addressprefix="10.0.1.0/24"
 $vNetName="myVnet"
-$vNetPrefix="192.168.0.0/16"
+$vNetPrefix="10.0.0.0/16"
+$NIC1="RWEX11NIC1"
+$NIC2="RWEX11NIC2"
 $VMSize="Standard_A2_v2"
-$computername="SERVER01"
-$VMName="SERVER01"
+$computername="RWEX11"
+$VMName="RWEX11"
 $sku="2016-Datacenter"
 
 
@@ -105,9 +119,15 @@ New-AzureRmResourceGroup -Name $rgn -Location $location
 
 # Create Storage Account to Hold VMs:
 
+If ($UseExistingStorageAcct -eq 'N') {
+
 $storageAcctemp = New-AzureRmStorageAccount -ResourceGroupName $rgn `
     -Location $location -Name $storagename `
-    -Kind "Storage" -SkuName $storagesku
+    -Kind "Storage" -SkuName $storagesku  }
+
+If ($UseExistingStorageAcct -eq 'Y') {
+
+$storageAcctemp = Get-AzureRmStorageAccount -ResourceGroupName $rgn -AccountName $storagename }
 
 
 # Create Subnets:
@@ -127,7 +147,7 @@ $myVnet = New-AzureRmVirtualNetwork -ResourceGroupName $rgn `
 
 # Create Public IP Resource (so you can RDP to your VM):
 
-$pip = New-AzureRmPublicIpAddress -Name PublicIP -ResourceGroupName $rgn `
+$pip = New-AzureRmPublicIpAddress -Name $computername -ResourceGroupName $rgn `
      -AllocationMethod Dynamic -Location $location 
 
 
@@ -135,16 +155,13 @@ $pip = New-AzureRmPublicIpAddress -Name PublicIP -ResourceGroupName $rgn `
 
 $network1 = $myVnet.Subnets|?{$_.Name -eq $subnet1name}
 $myNic1 = New-AzureRmNetworkInterface -ResourceGroupName $rgn `
-    -Location $location -Name "NIC1" -SubnetId $network1.Id -PublicIpAddressId $pip.Id
+    -Location $location -Name $NIC1 -SubnetId $network1.Id -PublicIpAddressId $pip.Id
 
 $network2 = $myVnet.Subnets|?{$_.Name -eq $subnet2name}
 $myNic2 = New-AzureRmNetworkInterface -ResourceGroupName $rgn `
-    -Location $location -Name "NIC2" -SubnetId $network2.Id
+    -Location $location -Name $NIC2 -SubnetId $network2.Id
 
 Write-Host " "
-Write-Host " "
-Write-Host "   NOTE: After you supply account credentials for the VM, the script will appear unresponsive." 
-Write-Host "         It is not hung. It's simply provisioning the VM. The script will complete in approximately 5 minutes."
 Write-Host " "
 
 # CREATE VIRTUAL MACHINE
@@ -153,6 +170,8 @@ Write-Host " "
 
 $cred = Get-Credential
 
+Write-Host " "
+Write-Host "   Please wait while your VM is provisioned. This may take 10-15 minutes. Do not cancel the script."
 
 # Define Your VM Size:
 
@@ -177,9 +196,12 @@ $vmConfig = Add-AzureRmVMNetworkInterface -VM $vmConfig -Id $myNic2.Id
 
 $storageAcc = $storageAcctemp
 
-$blobPath = "vhds/WindowsVMosDisk.vhd"
+$diskName = $VMName+'_osDisk'
+# $blobPath = "vhds/WindowsVMosDisk.vhd"
+$blobPath = 'vhds/'+$diskname+'.vhd'
 $osDiskUri = $storageAcc.PrimaryEndpoints.Blob.ToString() + $blobPath
-$diskName = "windowsvmosdisk"
+# $diskName = "windowsvmosdisk"
+
 $vmConfig = Set-AzureRmVMOSDisk -VM $vmConfig -Name $diskName -VhdUri $osDiskUri `
     -CreateOption "fromImage"
 
