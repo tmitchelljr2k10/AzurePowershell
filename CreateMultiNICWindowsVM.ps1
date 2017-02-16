@@ -18,8 +18,8 @@ Write-Host "   "
 Write-Host "   This script is provided AS-IS with no support offered. Please test this script in your lab environment first, before using it in production."
 Write-Host "   "
 Write-Host "   "
-Write-Host "   This script MUST be modified before you can use it!"
-Write-Host "   All variables under SET SCRIPT VARIABLES within the script must be replaced with your own values. Do not forget the quotation marks."
+Write-Host "   This script should be modified before you can use it!"
+Write-Host "   Variables under SET SCRIPT VARIABLES within the script must be replaced with your own values. Do not forget the quotation marks."
 Write-Host "   "
 Write-Host "   This script creates a new Resource Group and Storage Account for each VM it provisions."
 Write-Host "   "
@@ -39,7 +39,7 @@ Write-Host "   If you run this script without editing it, it will provision the 
 Write-Host "   "
 Write-Host "         Resource Group: MyResourceGroup"
 Write-Host "         Location: WestUS"
-Write-Host "         Storage Account: mystorageaccount"
+Write-Host "         Storage Account: WILL PROMPT YOU FOR NAME"
 Write-Host "         Storage Type: Standard_LRS"
 Write-Host "         First Subnet: Subnet1"
 Write-Host "         Subnet1 Subnetting: 192.168.1.0/24"
@@ -57,6 +57,8 @@ Write-Host "   "
 write-host -nonewline "   Continue running script? (Y/N) "
 $response = read-host
 if ( $response -ne "Y" ) { exit }
+Write-Host "   "
+Write-Host "   "
 
 
 # SET SCRIPT VARIABLES
@@ -78,9 +80,9 @@ if ( $response -ne "Y" ) { exit }
 # $VMName: provide a name for the VM (usually the same as the Computer Name)
 # $sku: What OS image do you want to use?  Run Get-AzureRmVMImageSKU for a list of options
 
-$rgn = "MyResourceGroup"
+$rgn = "MyResourceGroupNew"
 $location="WestUS"
-$storagename="mystorageaccount"
+$storagename=Read-Host -Prompt 'Input a unique storage account name (ie. labstorageacct097654) NO CAPITAL LETTERS'
 $storagesku="Standard_LRS"
 $subnet1name="Subnet1"
 $subnet1addressprefix="192.168.1.0/24"
