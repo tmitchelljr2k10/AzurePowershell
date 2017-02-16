@@ -164,7 +164,8 @@ Write-Host "   "
 Write-Host "   Configuring Public IP..."
 Write-Host "   "
 
-$pip = New-AzureRmPublicIpAddress -Name $computername -ResourceGroupName $rgn `
+$publicipname = 'PublicIP-'+$computername
+$pip = New-AzureRmPublicIpAddress -Name $publicipname -ResourceGroupName $rgn `
      -AllocationMethod Dynamic -Location $location -WarningAction silentlyContinue
 
 
